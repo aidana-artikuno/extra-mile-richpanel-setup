@@ -190,7 +190,7 @@
   </main>
   <footer>One account section, then one section per brand. A colleague can open a brand link and send only that brand.</footer>
   <script>
-    const ENDPOINT = "https://formsubmit.co/ajax/aidana@artikunocommerce.com";
+    const ENDPOINT = "https://formsubmit.co/aa7f102e9be1630c59d046ffe66c599b";
 
     const BRANDS = [
       { id: "basketballhoop", group: "started", name: "BasketballHoop.com", email: "service@basketballhoop.com", site: "https://basketballhoop.com", known: "Shipping and returns pages are on the site. Articles are already in Richpanel. Freight is inspected before anyone signs, concealed damage is reported within 48 hours, and a delivery date is not guessed." },
@@ -322,7 +322,7 @@
     function fileField(id) {
       return `<label class="field">Upload documents
         <input id="${id}" name="attachment" type="file" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.csv,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.zip,application/pdf">
-        <span class="hint">PDF, Word, Excel, images, or a zip. Up to 8 files and 10 MB on this send. For a larger pack, paste a Drive or Dropbox link above. Remove customer names, order numbers, and card numbers first.</span>
+        <span class="hint">PDF, Word, Excel, images, or a zip. Up to 8 files and 10 MB on this send. Several files arrive together in one zip. For a larger pack, paste a Drive or Dropbox link above. Remove customer names, order numbers, and card numbers first.</span>
         <span class="file-names" id="${id}-names"></span>
       </label>`;
     }
@@ -689,6 +689,62 @@
       await send("Extra Mile Richpanel — " + brand + " — " + s.name, s.email, brandSummary(s, b), s, key, files);
     }
 
+    function crc32(data) {
+      let c = ~0;
+      for (let i = 0; i < data.length; i++) {
+        c ^= data[i];
+        for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+      }
+      return ~c >>> 0;
+    }
+
+    async function filesToAttachment(files) {
+      if (!files || !files.length) return null;
+      if (files.length === 1) return files[0];
+      const enc = new TextEncoder();
+      const parts = [];
+      const central = [];
+      let offset = 0;
+      for (const file of files) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const name = enc.encode(file.name.replace(/[\\/]/g, "_"));
+        const crc = crc32(bytes);
+        const local = new Uint8Array(30);
+        const view = new DataView(local.buffer);
+        view.setUint32(0, 0x04034b50, true);
+        view.setUint16(4, 20, true);
+        view.setUint32(14, crc, true);
+        view.setUint32(18, bytes.length, true);
+        view.setUint32(22, bytes.length, true);
+        view.setUint16(26, name.length, true);
+        const cen = new Uint8Array(46);
+        const cv = new DataView(cen.buffer);
+        cv.setUint32(0, 0x02014b50, true);
+        cv.setUint16(4, 20, true);
+        cv.setUint16(6, 20, true);
+        cv.setUint32(16, crc, true);
+        cv.setUint32(20, bytes.length, true);
+        cv.setUint32(24, bytes.length, true);
+        cv.setUint16(28, name.length, true);
+        cv.setUint32(42, offset, true);
+        parts.push(local, name, bytes);
+        central.push(cen, name);
+        offset += local.length + name.length + bytes.length;
+      }
+      const centralStart = offset;
+      let centralSize = 0;
+      central.forEach((part) => { parts.push(part); centralSize += part.length; });
+      const end = new Uint8Array(22);
+      const ev = new DataView(end.buffer);
+      ev.setUint32(0, 0x06054b50, true);
+      ev.setUint16(8, files.length, true);
+      ev.setUint16(10, files.length, true);
+      ev.setUint32(12, centralSize, true);
+      ev.setUint32(16, centralStart, true);
+      parts.push(end);
+      return new File(parts, "extra-mile-documents.zip", { type: "application/zip" });
+    }
+
     async function send(subject, replyTo, summary, state, key, files) {
       const btn = document.querySelector("#f button[type=submit]");
       btn.disabled = true;
@@ -703,11 +759,16 @@
       body.append("email", replyTo);
       body.append("summary", summary);
       body.append("answers_json", JSON.stringify(state));
-      (files || []).forEach((file) => body.append("attachment", file, file.name));
+      const packed = await filesToAttachment(files);
+      if (packed) body.append("attachment", packed, packed.name);
       try {
-        const res = await fetch(ENDPOINT, { method: "POST", headers: { Accept: "application/json" }, body });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || String(data.success) === "false") throw new Error(data.message || "The form service did not accept the answers.");
+        const res = await fetch(ENDPOINT, { method: "POST", body });
+        const text = await res.text();
+        let data = {};
+        try { data = JSON.parse(text); } catch (e) {}
+        if (!res.ok || String(data.success) === "false" || /needs Activation/i.test(text)) {
+          throw new Error(data.message || "The form service did not accept the answers.");
+        }
         state.sent = true;
         localStorage.setItem(key, JSON.stringify(state));
         thanks(summary, true);
