@@ -73,6 +73,8 @@
     legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
     span.req::after, legend.req::after { content: " *"; color: var(--danger); }
     .field { display: block; margin: 0 0 14px; font-weight: 500; }
+    input[type="file"] { display: block; margin-top: 6px; font: inherit; font-weight: 400; }
+    .file-names { display: block; margin-top: 6px; color: var(--muted); font-size: 14px; font-weight: 400; }
     input[type="text"], input[type="email"], input[type="url"], textarea, select {
       width: 100%;
       margin-top: 6px;
@@ -222,18 +224,33 @@
       ["address", "Change the delivery address before shipment"]
     ];
 
+    const KNOWLEDGE = [
+      ["shipTimes", "Ship times", "In stock, made to order, and freight. What a reply may say, and which dates it must not promise."],
+      ["tracking", "Order status", "Where the team checks an order, and what to tell a customer before a tracking number exists."],
+      ["returns", "Returns and refunds", "Window, condition of the item, who pays the freight, restocking fee, what cannot be returned, and how the refund is paid."],
+      ["damage", "Damage and missing pieces", "Inspect before signing, concealed-damage window, photos you need, and who files the carrier claim."],
+      ["parts", "Replacement parts", "How a customer asks, what you need from them, and whether you ship a part or replace the unit."],
+      ["warranty", "Warranty", "How long it lasts, and what it does not cover."],
+      ["cutoff", "Cancel, edit, and address change", "The cutoff. For example, before the label is made, or before the carrier picks the order up."],
+      ["freight", "Freight and delivery access", "Stairs, tight doorways, room placement, white glove, and anything that is quoted separately."],
+      ["quoteInfo", "Quotes, schools, gyms, and custom orders", "Which details to collect, and who sends the price."],
+      ["neverSay", "What the AI must not say on this brand", "Dates, carriers, discounts, stock, or prices it should never invent."],
+      ["savedReplies", "Replies your team already likes", "Paste them here, or name the file they are in. Remove the customer’s name and order number."],
+      ["escalation", "Who handles a supplier delay", "Name and email inside your team. This is not shown to the customer."]
+    ];
+
     function blankAccount() {
       return {
         v: 1, sent: false,
         name: "", role: "", email: "",
-        rate: "yes", reopen: "5",
-        vendor: "yes", actions: "yes", postShip: "yes",
+        actions: "yes", postShip: "yes",
         never: { contact: true, event: true, legal: true, chargeback: true },
         quotes: "person",
         approver: "", weeklyName: "", weeklyEmail: "",
         hours: "yes", hoursNote: "", holidays: "",
         shopify: "", shopifyNote: "",
         tone: "yes", promises: "yes",
+        docLinks: "", docNote: "",
         note: ""
       };
     }
@@ -241,13 +258,17 @@
     function blankBrand(b) {
       const actions = {};
       ACTIONS.forEach(([id]) => { actions[id] = "yes"; });
-      return {
+      const knowledge = {};
+      KNOWLEDGE.forEach(([id]) => { knowledge[id] = ""; });
+      return Object.assign(knowledge, {
         v: 1, sent: false,
         name: "", role: "", email: "",
         scope: "customer",
         supportEmail: b.email || "",
         site: b.site || "",
         policy: "site", policyNote: "",
+        shippingUrl: "", returnsUrl: "", warrantyUrl: "", faq: "", guides: "",
+        otherLinks: "", docNote: "",
         carriers: "",
         hours: "same", hoursNote: "",
         signoff: "store", signoffNote: "",
@@ -257,7 +278,7 @@
         afterShip: "yes",
         exceptions: "",
         differs: ""
-      };
+      });
     }
 
     function load(key, blank) {
@@ -280,6 +301,31 @@
       return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }
     function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+    function attachedFiles(form) {
+      return [...form.querySelectorAll('input[type="file"]')].flatMap((el) => [...el.files]);
+    }
+    function fileError(files) {
+      if (files.length > 8) return "Attach up to 8 files on one send. Put a larger pack in a Drive or Dropbox link.";
+      const total = files.reduce((n, file) => n + file.size, 0);
+      if (total > 10 * 1024 * 1024) return "Those files are over 10 MB. Paste a Drive or Dropbox link instead, and send the smaller files here.";
+      return "";
+    }
+    function watchFiles(inputId) {
+      const input = document.getElementById(inputId);
+      const names = document.getElementById(inputId + "-names");
+      if (!input || !names) return;
+      const show = () => {
+        names.textContent = [...input.files].map((file) => file.name).join(", ");
+      };
+      input.addEventListener("change", show);
+    }
+    function fileField(id) {
+      return `<label class="field">Upload documents
+        <input id="${id}" name="attachment" type="file" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.csv,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.zip,application/pdf">
+        <span class="hint">PDF, Word, Excel, images, or a zip. Up to 8 files and 10 MB on this send. For a larger pack, paste a Drive or Dropbox link above. Remove customer names, order numbers, and card numbers first.</span>
+        <span class="file-names" id="${id}-names"></span>
+      </label>`;
+    }
     function radios(name, value, options) {
       return `<div class="options">${options.map(([val, label, suggested]) => `
         <label><input type="radio" name="${name}" value="${val}" ${value === val ? "checked" : ""}>
@@ -308,13 +354,13 @@
         <h2>Start with the part you own</h2>
         <p class="step-help">The account section is once, for the rules that apply to every store. Each brand is a separate form. Send the one you can answer. Someone else can send the others.</p>
         <p class="group-title">Whole account</p>
-        <div class="cards">${card("#account", "Kickoff confirmations", "Automation rate, what the AI may do, hours, and who can stop a wrong refund.", account)}</div>
+        <div class="cards">${card("#account", "Kickoff confirmations", "Company-wide policies, files, what the AI may do, and who can stop a wrong refund.", account)}</div>
         <p class="group-title">Stores we have already started</p>
-        <div class="cards">${started.map((b) => card("#brand/" + b.id, b.name, "Confirm the rules for this store.", status("em-rp-brand-" + b.id))).join("")}</div>
+        <div class="cards">${started.map((b) => card("#brand/" + b.id, b.name, "Policies, FAQs, files, and anything this store does differently.", status("em-rp-brand-" + b.id))).join("")}</div>
         <p class="group-title">Other brands in the Richpanel account</p>
         <p class="step-help">The account has about 40 brands. These are the ones we could name. Use the last card for a brand that is not here.</p>
         <div class="cards">
-          ${rest.map((b) => card("#brand/" + b.id, b.name, b.known || "Tell us if this brand is in scope, and how it differs.", status("em-rp-brand-" + b.id))).join("")}
+          ${rest.map((b) => card("#brand/" + b.id, b.name, b.known || "Send the policy pages, FAQ, and any files for this brand.", status("em-rp-brand-" + b.id))).join("")}
           ${card("#brand/other", "A brand that is not listed", "Send this again for each missing brand. Put the brand name in the form.", status("em-rp-brand-other"))}
         </div>`;
     }
@@ -337,23 +383,13 @@
           </div>
           <label class="field"><span class="req">Your email</span><input name="email" type="email" value="${esc(s.email)}"></label>
 
-          <h3>What the 70% rate counts</h3>
-          <p class="step-help">This is the definition in the agreement. Confirm it, or tell us what has to change before we build.</p>
-          <fieldset>
-            <legend class="req">Vendor, marketing, carrier, and Shopify notice mail closed by a rule counts toward the rate</legend>
-            ${radios("vendor", s.vendor, [["yes", "Yes, count it", true], ["no", "No, leave it out"]])}
-          </fieldset>
-          <fieldset>
-            <legend class="req">A resolved ticket stays in the rate unless the customer writes back, or a person has to take it, within</legend>
-            ${radios("reopen", s.reopen, [["5", "5 days", true], ["7", "7 days"], ["other", "A different window"]])}
-          </fieldset>
-          <label class="field">If the window is different, write it here
-            <input name="reopenNote" value="${esc(s.reopenNote || "")}" placeholder="Only needed if you chose a different window">
-          </label>
-          <fieldset>
-            <legend class="req">The weekly number is calculated from the Richpanel conversation rows, not from Richpanel’s own automation percentage</legend>
-            ${radios("rate", s.rate, [["yes", "Yes. Use the raw rows.", true], ["no", "No. We need to discuss the source."]])}
-          </fieldset>
+          <h3>Documents and links for every store</h3>
+          <p class="step-help">If a policy, SOP, macro library, or help center already exists, send it here. We will use that instead of asking you to retype the rules. Files that belong to one brand go on that brand’s page.</p>
+          <label class="field">Links the AI should follow
+            <textarea name="docLinks" placeholder="One per line. Shipping, returns, warranty, an FAQ, a help center, a Google Drive folder, an old macro export.">${esc(s.docLinks)}</textarea></label>
+          <label class="field">What these are, and which stores they cover
+            <textarea name="docNote" placeholder="For example: the Drive folder is the company return SOP. The FAQ covers freight for every game-table brand.">${esc(s.docNote)}</textarea></label>
+          ${fileField("account-files")}
 
           <h3>What the AI may do</h3>
           <fieldset>
@@ -412,14 +448,14 @@
       const accountForm = document.getElementById("f");
       const saveAccountDraft = () => localStorage.setItem("em-rp-account-v1", JSON.stringify(readAccount(accountForm)));
       accountForm.addEventListener("change", saveAccountDraft);
+      watchFiles("account-files");
       accountForm.onsubmit = (e) => submitAccount(e);
     }
 
     function readAccount(form) {
       const s = accountState();
-      ["name", "role", "email", "approver", "weeklyName", "weeklyEmail", "shopifyNote", "hoursNote", "holidays", "note"].forEach((k) => { s[k] = val(form, k); });
-      s.reopenNote = val(form, "reopenNote");
-      ["vendor", "reopen", "rate", "actions", "postShip", "quotes", "shopify", "hours", "tone", "promises"].forEach((k) => { s[k] = picked(form, k); });
+      ["name", "role", "email", "approver", "weeklyName", "weeklyEmail", "shopifyNote", "hoursNote", "holidays", "docLinks", "docNote", "note"].forEach((k) => { s[k] = val(form, k); });
+      ["actions", "postShip", "quotes", "shopify", "hours", "tone", "promises"].forEach((k) => { s[k] = picked(form, k); });
       const never = { contact: false, event: false, legal: false, chargeback: false };
       [...form.querySelectorAll('input[name="never"]:checked')].forEach((el) => { never[el.value] = true; });
       s.never = never;
@@ -429,9 +465,8 @@
 
     function validateAccount(s) {
       if (!s.name || !s.role || !emailOk(s.email)) return "Add your name, role, and a real email.";
-      if (!s.vendor || !s.reopen || !s.rate || !s.actions || !s.postShip || !s.quotes || !s.shopify || !s.hours || !s.tone || !s.promises) return "Please answer every required question.";
-      if (s.reopen === "other" && !s.reopenNote) return "Write the reopen window you want.";
-      if ((s.hours === "no" || s.tone === "no" || s.promises === "no" || s.rate === "no" || s.postShip === "no") && !s.note && !s.hoursNote) return "Add a note for every answer that is not the suggested one.";
+      if (!s.actions || !s.postShip || !s.quotes || !s.shopify || !s.hours || !s.tone || !s.promises) return "Please answer every required question.";
+      if ((s.hours === "no" || s.tone === "no" || s.promises === "no" || s.postShip === "no") && !s.note && !s.hoursNote) return "Add a note for every answer that is not the suggested one.";
       if (!emailOk(s.approver) || !s.weeklyName || !emailOk(s.weeklyEmail)) return "Add the approver and the weekly-call contact.";
       if (s.shopify === "some" && !s.shopifyNote) return "Name the stores whose Shopify connection is missing.";
       return "";
@@ -442,9 +477,8 @@
       return [
         "Extra Mile — account confirmations",
         "From: " + s.name + " (" + s.role + ") " + s.email,
-        "Vendor and notice mail counts: " + s.vendor,
-        "Reopen window: " + s.reopen + (s.reopenNote ? " — " + s.reopenNote : ""),
-        "Calculate from raw Richpanel rows: " + s.rate,
+        "Company links: " + (s.docLinks || "—"),
+        "What the files cover: " + (s.docNote || "—"),
         "Pre-shipping actions without approval: " + s.actions,
         "Post-shipping stays with a person: " + s.postShip,
         "Never auto-close: " + never,
@@ -465,8 +499,11 @@
       const s = readAccount(e.target);
       const error = validateAccount(s);
       if (error) { document.getElementById("err").innerHTML = `<div class="error" role="alert">${esc(error)}</div>`; return; }
+      const files = attachedFiles(e.target);
+      const tooBig = fileError(files);
+      if (tooBig) { document.getElementById("err").innerHTML = `<div class="error" role="alert">${esc(tooBig)}</div>`; return; }
       localStorage.setItem("em-rp-account-v1", JSON.stringify(s));
-      await send("Extra Mile Richpanel — account answers — " + s.name, s.email, accountSummary(s), s, "em-rp-account-v1");
+      await send("Extra Mile Richpanel — account answers — " + s.name, s.email, accountSummary(s), s, "em-rp-account-v1", files);
     }
 
     function renderBrand(id) {
@@ -501,17 +538,40 @@
           <div id="details">
             <div class="grid-2">
               <label class="field"><span class="req">Support email customers reply to</span><input name="supportEmail" type="email" value="${esc(s.supportEmail)}"></label>
-              <label class="field">Website<input name="site" type="url" value="${esc(s.site)}" placeholder="https://"></label>
+              <label class="field">Store website<input name="site" type="url" value="${esc(s.site)}" placeholder="https://"></label>
             </div>
+            <h3>Pages and files for this brand</h3>
+            <p class="step-help">A link or an upload is enough. Leave a question further down blank when a page or a file already answers it.</p>
+            <div class="grid-2">
+              <label class="field">Shipping and delivery page<input name="shippingUrl" type="url" value="${esc(s.shippingUrl)}" placeholder="https://"></label>
+              <label class="field">Returns and refunds page<input name="returnsUrl" type="url" value="${esc(s.returnsUrl)}" placeholder="https://"></label>
+              <label class="field">Warranty page<input name="warrantyUrl" type="url" value="${esc(s.warrantyUrl)}" placeholder="https://"></label>
+              <label class="field">FAQ or help center<input name="faq" type="url" value="${esc(s.faq)}" placeholder="https://"></label>
+            </div>
+            <label class="field">Product guides, sizing, or assembly pages
+              <input name="guides" type="url" value="${esc(s.guides)}" placeholder="https://"></label>
+            <label class="field">Any other useful links
+              <textarea name="otherLinks" placeholder="One per line. A Google Drive folder, supplier instructions, an old macro sheet, a size chart, a freight SOP.">${esc(s.otherLinks)}</textarea></label>
+            ${fileField("brand-files")}
+            <label class="field">What the files and links contain
+              <textarea name="docNote" placeholder="For example: the PDF is the return SOP. The Drive folder has the saved replies.">${esc(s.docNote)}</textarea></label>
             <fieldset>
-              <legend class="req">Shipping, returns, and warranty</legend>
+              <legend class="req">If the website and your files disagree, which one do we follow?</legend>
               ${radios("policy", s.policy, [
-                ["site", "Follow the live website", true],
-                ["differs", "The website is missing something, or we do it differently"]
+                ["site", "The live website", true],
+                ["files", "The files and links on this form"],
+                ["differs", "Neither is complete. I wrote the difference below."]
               ])}
             </fieldset>
-            <label class="field">Policy links, and what is different in practice
-              <textarea name="policyNote" placeholder="Links, return window, restocking fee, what cannot be returned">${esc(s.policyNote)}</textarea></label>
+            <label class="field">What is different in practice
+              <textarea name="policyNote" placeholder="Only if the pages and the files do not already say it.">${esc(s.policyNote)}</textarea></label>
+            <h3>Rules for ticket replies</h3>
+            <p class="step-help">Answer only what is not already in a link or a file. This is what the AI needs in order to resolve the common tickets.</p>
+            ${KNOWLEDGE.map(([id, title, hint]) => `
+              <label class="field">${esc(title)}
+                <span class="hint">${esc(hint)}</span>
+                <textarea name="${id}">${esc(s[id] || "")}</textarea>
+              </label>`).join("")}
             <label class="field">Carriers this brand actually uses
               <input name="carriers" value="${esc(s.carriers)}" placeholder="Only name a carrier when it is on the order. List the usual ones here."></label>
             <fieldset>
@@ -552,27 +612,30 @@
         localStorage.setItem("em-rp-brand-" + b.id, JSON.stringify(draft));
       };
       brandForm.addEventListener("change", () => { sync(); saveBrandDraft(); });
+      watchFiles("brand-files");
       sync();
       brandForm.onsubmit = (e) => submitBrand(e, b);
     }
 
     function readBrand(form, b) {
       const s = b.id === "other" ? brandState("other") : brandState(b.id);
-      ["name", "role", "email", "brandName", "supportEmail", "site", "policyNote", "carriers", "hoursNote", "signoffNote", "toneNote", "sample", "exceptions", "differs"].forEach((k) => { s[k] = val(form, k); });
+      ["name", "role", "email", "brandName", "supportEmail", "site", "shippingUrl", "returnsUrl", "warrantyUrl", "faq", "guides", "otherLinks", "docNote", "policyNote", "carriers", "hoursNote", "signoffNote", "toneNote", "sample", "exceptions", "differs", ...KNOWLEDGE.map(([id]) => id)].forEach((k) => { s[k] = val(form, k); });
       ["scope", "policy", "hours", "signoff", "tone", "afterShip"].forEach((k) => { s[k] = picked(form, k); });
       ACTIONS.forEach(([id]) => { s.actions[id] = picked(form, "act-" + id); });
       s.sent = false;
       return s;
     }
 
-    function validateBrand(s, b) {
+    function validateBrand(s, b, files) {
       if (!s.name || !s.role || !emailOk(s.email)) return "Add your name, role, and a real email.";
       if (b.id === "other" && !s.brandName) return "Add the brand name.";
       if (!s.scope) return "Say whether this brand is in the project.";
       if (s.scope === "out") return "";
       if (!emailOk(s.supportEmail)) return "Add the support email customers reply to.";
       if (!s.policy || !s.hours || !s.signoff || !s.tone || !s.afterShip) return "Please answer every required question.";
-      if (s.policy === "differs" && !s.policyNote) return "Say what is different from the website, or paste the policy link.";
+      const hasSource = [s.site, s.shippingUrl, s.returnsUrl, s.warrantyUrl, s.faq, s.guides, s.otherLinks, s.docNote, s.policyNote, ...KNOWLEDGE.map(([id]) => s[id])].some(Boolean) || (files && files.length);
+      if (s.scope === "customer" && !hasSource) return "Add at least one link or document for this brand. A website, FAQ, policy page, or an upload is enough.";
+      if (s.policy === "differs" && !s.policyNote && !(files && files.length)) return "Write what is missing, or attach the document that has it.";
       if (s.hours === "diff" && !s.hoursNote) return "Write this brand’s hours.";
       if (s.signoff === "other" && !s.signoffNote) return "Write the sign-off.";
       if (s.tone === "diff" && !s.toneNote) return "Say how this brand should sound.";
@@ -592,7 +655,15 @@
       lines.push(
         "Support email: " + s.supportEmail,
         "Website: " + (s.site || "—"),
-        "Policy: " + s.policy + (s.policyNote ? " — " + s.policyNote : ""),
+        "Shipping page: " + (s.shippingUrl || "—"),
+        "Returns page: " + (s.returnsUrl || "—"),
+        "Warranty page: " + (s.warrantyUrl || "—"),
+        "FAQ: " + (s.faq || "—"),
+        "Guides: " + (s.guides || "—"),
+        "Other links: " + (s.otherLinks || "—"),
+        "What the files cover: " + (s.docNote || "—"),
+        "Which source to follow: " + s.policy + (s.policyNote ? " — " + s.policyNote : ""),
+        ...KNOWLEDGE.map(([id, title]) => title + ": " + (s[id] || "—")),
         "Carriers: " + (s.carriers || "—"),
         "Hours: " + s.hours + (s.hoursNote ? " — " + s.hoursNote : ""),
         "Sign-off: " + s.signoff + (s.signoffNote ? " — " + s.signoffNote : ""),
@@ -609,18 +680,21 @@
     async function submitBrand(e, b) {
       e.preventDefault();
       const s = readBrand(e.target, b);
-      const error = validateBrand(s, b);
+      const files = attachedFiles(e.target);
+      const error = validateBrand(s, b, files) || fileError(files);
       if (error) { document.getElementById("err").innerHTML = `<div class="error" role="alert">${esc(error)}</div>`; return; }
       const key = "em-rp-brand-" + b.id;
       localStorage.setItem(key, JSON.stringify(s));
       const brand = s.brandName || b.name;
-      await send("Extra Mile Richpanel — " + brand + " — " + s.name, s.email, brandSummary(s, b), s, key);
+      await send("Extra Mile Richpanel — " + brand + " — " + s.name, s.email, brandSummary(s, b), s, key, files);
     }
 
-    async function send(subject, replyTo, summary, state, key) {
+    async function send(subject, replyTo, summary, state, key, files) {
       const btn = document.querySelector("#f button[type=submit]");
       btn.disabled = true;
       btn.textContent = "Sending…";
+      const names = (files || []).map((file) => file.name);
+      if (names.length) summary += "\nFiles: " + names.join(", ");
       const body = new FormData();
       body.append("_subject", subject);
       body.append("_template", "table");
@@ -629,6 +703,7 @@
       body.append("email", replyTo);
       body.append("summary", summary);
       body.append("answers_json", JSON.stringify(state));
+      (files || []).forEach((file) => body.append("attachment", file, file.name));
       try {
         const res = await fetch(ENDPOINT, { method: "POST", headers: { Accept: "application/json" }, body });
         const data = await res.json().catch(() => ({}));
