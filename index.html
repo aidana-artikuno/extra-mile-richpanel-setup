@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Richpanel setup questions — Extra Mile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1c1a33;
+      --muted: #5e5a78;
+      --line: #e3dfec;
+      --paper: #f4f3f8;
+      --card: #ffffff;
+      --accent: #292560;
+      --accent-soft: #efedf6;
+      --danger: #8d2f2a;
+      --danger-soft: #fdeceb;
+      --ok: #1f6b45;
+      --ok-soft: #e7f6ee;
+      --shadow: 0 1px 0 rgba(28, 26, 51, 0.04);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Outfit, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    header, main, footer { width: min(920px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 36px 0 8px; }
+    .eyebrow {
+      margin: 0 0 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    h1 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(32px, 4vw, 44px);
+      line-height: 1.1;
+      font-weight: 560;
+      margin: 0 0 12px;
+    }
+    .lede { margin: 0; max-width: 70ch; color: var(--muted); font-size: 17px; }
+    main { padding: 18px 0 48px; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    h2 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: 28px;
+      font-weight: 560;
+      margin: 0 0 6px;
+    }
+    h3 { font-size: 16px; margin: 22px 0 8px; }
+    .step-help { color: var(--muted); margin: 0 0 18px; }
+    a { color: var(--accent); }
+    .back { display: inline-block; margin-bottom: 14px; font-weight: 600; text-decoration: none; }
+    fieldset { border: 0; padding: 0; margin: 0 0 16px; }
+    legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
+    span.req::after, legend.req::after { content: " *"; color: var(--danger); }
+    .field { display: block; margin: 0 0 14px; font-weight: 500; }
+    input[type="text"], input[type="email"], input[type="url"], textarea, select {
+      width: 100%;
+      margin-top: 6px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 12px;
+      font: inherit;
+      color: inherit;
+      background: #fff;
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    input:focus, textarea:focus, select:focus, button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .options label, .stack label.pick {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-weight: 500;
+      background: #fff;
+      cursor: pointer;
+    }
+    .options label:has(input:checked), .stack label.pick:has(input:checked) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .stack { display: grid; gap: 8px; }
+    .hint { display: block; color: var(--muted); font-weight: 400; font-size: 13px; margin-top: 4px; }
+    .suggested { font-size: 12px; color: var(--ok); font-weight: 600; }
+    .policy {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin: 0 0 12px;
+      background: #fafafc;
+    }
+    .policy p { margin: 6px 0 0; }
+    .error {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 0 0 14px;
+    }
+    .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+    button.primary, button.ghost {
+      font: inherit;
+      font-weight: 600;
+      border-radius: 999px;
+      padding: 11px 16px;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); color: #fff; border: 0; }
+    button.ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    .checkline { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; margin: 8px 0; }
+    .group-title {
+      margin: 26px 0 10px;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .cards { display: grid; gap: 10px; }
+    .brand-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 16px;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .brand-card > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .brand-card strong { font-size: 17px; }
+    .brand-card > div span { color: var(--muted); font-size: 14px; }
+    .pill {
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      white-space: nowrap;
+      justify-self: start;
+    }
+    .pill.sent { background: var(--ok-soft); color: var(--ok); }
+    .pill.draft { background: #fff6e8; color: #8a5a12; }
+    .summary { white-space: pre-wrap; background: #fafafc; border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 14px; }
+    footer { color: var(--muted); font-size: 13px; padding: 0 0 40px; }
+    @media (max-width: 700px) {
+      .grid-2, .brand-card { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Artikuno · Extra Mile</p>
+    <h1 id="title">Questions for the Richpanel setup</h1>
+    <p class="lede" id="lede">Each part can be filled and sent on its own. Answers come to Aidana at Artikuno and stay in this browser until you send them. Please do not include customer names, order numbers, or card numbers.</p>
+  </header>
+  <main>
+    <div class="panel" id="app"></div>
+  </main>
+  <footer>One account section, then one section per brand. A colleague can open a brand link and send only that brand.</footer>
+  <script>
+    const ENDPOINT = "https://formsubmit.co/ajax/aidana@artikunocommerce.com";
+
+    const BRANDS = [
+      { id: "basketballhoop", group: "started", name: "BasketballHoop.com", email: "service@basketballhoop.com", site: "https://basketballhoop.com", known: "Shipping and returns pages are on the site. Articles are already in Richpanel. Freight is inspected before anyone signs, concealed damage is reported within 48 hours, and a delivery date is not guessed." },
+      { id: "pedalkarts", group: "started", name: "PedalKarts.com", email: "service@pedalkarts.com", site: "https://pedalkarts.com", known: "Articles are already in Richpanel. The returns page we used is pedalkarts.com/pages/refund-return-policy." },
+      { id: "omahagokarts", group: "started", name: "OmahaGoKarts.com", email: "service@omahagokarts.com", site: "https://omahagokarts.com", known: "Articles are already in Richpanel. The returns page says 30 days, unused, buyer pays return freight, and at least 15% restocking. Event and multi-kart quotes stay with a person." },
+      { id: "electricgokarts", group: "started", name: "ElectricGoKarts.com", email: "service@electricgokarts.com", site: "https://electricgokarts.com", known: "Articles are already in Richpanel for vendor mail, order status, parts, and choosing a first kart." },
+      { id: "bubblehockey", group: "started", name: "Bubble Hockey", email: "service@bubblehockeytable.com", site: "https://bubblehockeytable.com", known: "Articles are already in Richpanel. Custom tables, logos, and a table that will not start stay with a person. The public pages do not agree on one return window, so please state the one you use." },
+      { id: "shuffleboards", group: "started", name: "Shuffleboards.com", email: "service@shuffleboards.com", site: "https://shuffleboards.com", known: "Articles are already in Richpanel for vendor mail, freight appointments, delivery access, and returns." },
+      { id: "airhockey", group: "account", name: "AirHockeyTable.com", email: "", site: "", known: "" },
+      { id: "baseball", group: "account", name: "BaseballPitchingMachine.com", email: "", site: "", known: "" },
+      { id: "beerpong", group: "account", name: "Beer Pong", email: "", site: "", known: "Recent closed mail looked mostly like vendor pitches. Say if this brand has real customer orders." },
+      { id: "cornhole", group: "account", name: "CornholeGame.com", email: "", site: "", known: "Richpanel currently has two pages for this store: shipping, returns and damage together, plus a product guide." },
+      { id: "beanies", group: "account", name: "Custom Beanies", email: "", site: "", known: "Recent closed mail looked mostly like vendor pitches." },
+      { id: "dumbbells", group: "account", name: "DumbbellSets.com", email: "", site: "", known: "" },
+      { id: "foosball", group: "account", name: "FoosballTables.com", email: "", site: "", known: "" },
+      { id: "football", group: "account", name: "FootballThrowingMachines.com", email: "", site: "", known: "" },
+      { id: "putting", group: "account", name: "IndoorPuttingGreen.com", email: "", site: "", known: "" },
+      { id: "pickle", group: "account", name: "PickleStore", email: "", site: "", known: "" },
+      { id: "pingpong", group: "account", name: "PingPongTables.com", email: "", site: "", known: "" },
+      { id: "mound", group: "account", name: "PortablePitchingMound.com", email: "", site: "", known: "" },
+      { id: "punching", group: "account", name: "Punching Game Machine", email: "", site: "", known: "Recent closed mail looked mostly like vendor pitches." },
+      { id: "rails", group: "account", name: "SkateBoardRails", email: "", site: "", known: "" },
+      { id: "ramp", group: "account", name: "SkateBoardRamp", email: "", site: "", known: "" },
+      { id: "washers", group: "account", name: "WashersGame.com", email: "", site: "", known: "" }
+    ];
+
+    const ACTIONS = [
+      ["cancel", "Cancel an order that has not shipped"],
+      ["refund", "Refund before shipment, only for an amount the written policy already allows"],
+      ["edit", "Change the item, quantity, or shipping method before shipment"],
+      ["address", "Change the delivery address before shipment"]
+    ];
+
+    function blankAccount() {
+      return {
+        v: 1, sent: false,
+        name: "", role: "", email: "",
+        rate: "yes", reopen: "5",
+        vendor: "yes", actions: "yes", postShip: "yes",
+        never: { contact: true, event: true, legal: true, chargeback: true },
+        quotes: "person",
+        approver: "", weeklyName: "", weeklyEmail: "",
+        hours: "yes", hoursNote: "", holidays: "",
+        shopify: "", shopifyNote: "",
+        tone: "yes", promises: "yes",
+        note: ""
+      };
+    }
+
+    function blankBrand(b) {
+      const actions = {};
+      ACTIONS.forEach(([id]) => { actions[id] = "yes"; });
+      return {
+        v: 1, sent: false,
+        name: "", role: "", email: "",
+        scope: "customer",
+        supportEmail: b.email || "",
+        site: b.site || "",
+        policy: "site", policyNote: "",
+        carriers: "",
+        hours: "same", hoursNote: "",
+        signoff: "store", signoffNote: "",
+        tone: "same", toneNote: "",
+        sample: "",
+        actions,
+        afterShip: "yes",
+        exceptions: "",
+        differs: ""
+      };
+    }
+
+    function load(key, blank) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || "null");
+        if (saved && saved.v === 1) return Object.assign(blank(), saved, { actions: Object.assign((blank().actions || {}), saved.actions || {}), never: Object.assign((blank().never || {}), saved.never || {}) });
+      } catch (e) {}
+      return blank();
+    }
+    function accountState() { return load("em-rp-account-v1", blankAccount); }
+    function brandState(id) { return load("em-rp-brand-" + id, () => blankBrand(BRANDS.find((b) => b.id === id) || { email: "", site: "" })); }
+    function status(key) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || "null");
+        if (!saved) return "Not started";
+        return saved.sent ? "Sent" : "Draft on this browser";
+      } catch (e) { return "Not started"; }
+    }
+    function esc(s) {
+      return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+    function radios(name, value, options) {
+      return `<div class="options">${options.map(([val, label, suggested]) => `
+        <label><input type="radio" name="${name}" value="${val}" ${value === val ? "checked" : ""}>
+        <span>${label}${suggested ? ' <span class="suggested">Suggested</span>' : ""}</span></label>`).join("")}</div>`;
+    }
+    function val(form, name) { return (form.elements[name] && form.elements[name].value || "").trim(); }
+    function picked(form, name) {
+      const el = form.elements[name];
+      if (!el) return "";
+      if (el.value !== undefined && el.type !== "checkbox") return el.value;
+      const on = [...form.querySelectorAll(`input[name="${name}"]:checked`)][0];
+      return on ? on.value : "";
+    }
+
+    function renderHome() {
+      document.getElementById("title").textContent = "Questions for the Richpanel setup";
+      const account = status("em-rp-account-v1");
+      const started = BRANDS.filter((b) => b.group === "started");
+      const rest = BRANDS.filter((b) => b.group === "account");
+      const card = (href, title, detail, pill) => `
+        <a class="brand-card" href="${href}">
+          <div><strong>${esc(title)}</strong><span>${esc(detail)}</span></div>
+          <span class="pill ${pill === "Sent" ? "sent" : pill.startsWith("Draft") ? "draft" : ""}">${esc(pill)}</span>
+        </a>`;
+      document.getElementById("app").innerHTML = `
+        <h2>Start with the part you own</h2>
+        <p class="step-help">The account section is once, for the rules that apply to every store. Each brand is a separate form. Send the one you can answer. Someone else can send the others.</p>
+        <p class="group-title">Whole account</p>
+        <div class="cards">${card("#account", "Kickoff confirmations", "Automation rate, what the AI may do, hours, and who can stop a wrong refund.", account)}</div>
+        <p class="group-title">Stores we have already started</p>
+        <div class="cards">${started.map((b) => card("#brand/" + b.id, b.name, "Confirm the rules for this store.", status("em-rp-brand-" + b.id))).join("")}</div>
+        <p class="group-title">Other brands in the Richpanel account</p>
+        <p class="step-help">The account has about 40 brands. These are the ones we could name. Use the last card for a brand that is not here.</p>
+        <div class="cards">
+          ${rest.map((b) => card("#brand/" + b.id, b.name, b.known || "Tell us if this brand is in scope, and how it differs.", status("em-rp-brand-" + b.id))).join("")}
+          ${card("#brand/other", "A brand that is not listed", "Send this again for each missing brand. Put the brand name in the form.", status("em-rp-brand-other"))}
+        </div>`;
+    }
+
+    function shell(back, inner) {
+      document.getElementById("app").innerHTML = `<a class="back" href="#home">${back}</a>${inner}`;
+    }
+
+    function renderAccount() {
+      document.getElementById("title").textContent = "Kickoff confirmations";
+      const s = accountState();
+      shell("All sections", `
+        <h2>Rules for every store</h2>
+        <p class="step-help">One person can send this. Brand owners do not need to wait for it, and you do not need to fill the brand forms.</p>
+        <form id="f">
+          <div id="err"></div>
+          <div class="grid-2">
+            <label class="field"><span class="req">Your name</span><input name="name" value="${esc(s.name)}" required></label>
+            <label class="field"><span class="req">Your role</span><input name="role" value="${esc(s.role)}" placeholder="For example, E-commerce director"></label>
+          </div>
+          <label class="field"><span class="req">Your email</span><input name="email" type="email" value="${esc(s.email)}"></label>
+
+          <h3>What the 70% rate counts</h3>
+          <p class="step-help">This is the definition in the agreement. Confirm it, or tell us what has to change before we build.</p>
+          <fieldset>
+            <legend class="req">Vendor, marketing, carrier, and Shopify notice mail closed by a rule counts toward the rate</legend>
+            ${radios("vendor", s.vendor, [["yes", "Yes, count it", true], ["no", "No, leave it out"]])}
+          </fieldset>
+          <fieldset>
+            <legend class="req">A resolved ticket stays in the rate unless the customer writes back, or a person has to take it, within</legend>
+            ${radios("reopen", s.reopen, [["5", "5 days", true], ["7", "7 days"], ["other", "A different window"]])}
+          </fieldset>
+          <label class="field">If the window is different, write it here
+            <input name="reopenNote" value="${esc(s.reopenNote || "")}" placeholder="Only needed if you chose a different window">
+          </label>
+          <fieldset>
+            <legend class="req">The weekly number is calculated from the Richpanel conversation rows, not from Richpanel’s own automation percentage</legend>
+            ${radios("rate", s.rate, [["yes", "Yes. Use the raw rows.", true], ["no", "No. We need to discuss the source."]])}
+          </fieldset>
+
+          <h3>What the AI may do</h3>
+          <fieldset>
+            <legend class="req">Before an order ships, the AI may cancel, refund an amount the written policy already allows, edit the order, and change the address, with no person clicking approve</legend>
+            ${radios("actions", s.actions, [["yes", "Yes, for every in-scope store", true], ["some", "Yes, but some stores will say no on their own form"], ["no", "No. A person approves every action."]])}
+          </fieldset>
+          <fieldset>
+            <legend class="req">After an order has shipped, freight, damage, missing parts, and anything that has to go to a supplier stay with a person</legend>
+            ${radios("postShip", s.postShip, [["yes", "Yes", true], ["no", "No. We want some of those automated too."]])}
+          </fieldset>
+          <p class="step-help">Mail a rule must never close. Untick any that should be treated differently.</p>
+          <label class="checkline"><input type="checkbox" name="never" value="contact" ${s.never.contact ? "checked" : ""}> Contact forms stay with a person</label>
+          <label class="checkline"><input type="checkbox" name="never" value="event" ${s.never.event ? "checked" : ""}> Event inquiries stay with a person</label>
+          <label class="checkline"><input type="checkbox" name="never" value="legal" ${s.never.legal ? "checked" : ""}> Legal threats and press stay with a person</label>
+          <label class="checkline"><input type="checkbox" name="never" value="chargeback" ${s.never.chargeback ? "checked" : ""}> Chargebacks stay with a person</label>
+          <fieldset>
+            <legend class="req">School, gym, and multi-unit quotes</legend>
+            ${radios("quotes", s.quotes, [["person", "A person prices them. AI may only collect the details.", true], ["ai", "AI may send a price"], ["human", "A person handles them from the first reply"]])}
+          </fieldset>
+
+          <h3>Who we call</h3>
+          <label class="field"><span class="req">Who can pause a refund or cancellation the same day</span>
+            <input name="approver" type="email" value="${esc(s.approver)}" placeholder="Email"></label>
+          <div class="grid-2">
+            <label class="field"><span class="req">Who joins the weekly rate call</span><input name="weeklyName" value="${esc(s.weeklyName)}"></label>
+            <label class="field"><span class="req">Their email</span><input name="weeklyEmail" type="email" value="${esc(s.weeklyEmail)}"></label>
+          </div>
+          <fieldset>
+            <legend class="req">Shopify access for refunds, cancellations, and order edits</legend>
+            ${radios("shopify", s.shopify, [["all", "The Richpanel connection can do this on every store"], ["some", "Only some stores. I will name them."], ["notyet", "Not yet. We will grant it."]])}
+          </fieldset>
+          <label class="field">Stores that are not connected, or a note
+            <textarea name="shopifyNote">${esc(s.shopifyNote)}</textarea></label>
+
+          <h3>Hours, tone, and promises</h3>
+          <fieldset>
+            <legend class="req">Support hours are Monday to Friday, 9am to 5pm Central, unless a brand form says otherwise</legend>
+            ${radios("hours", s.hours, [["yes", "Yes", true], ["no", "No"]])}
+          </fieldset>
+          <label class="field">Corrected hours, and any days the warehouses are closed through January
+            <textarea name="hoursNote">${esc(s.hoursNote)}</textarea></label>
+          <label class="field">Closures we should know about
+            <input name="holidays" value="${esc(s.holidays)}"></label>
+          <fieldset>
+            <legend class="req">Default tone: short replies, signed as “{Store} Support”, unless a brand form says otherwise</legend>
+            ${radios("tone", s.tone, [["yes", "Yes", true], ["no", "No. See the note."]])}
+          </fieldset>
+          <fieldset>
+            <legend class="req">The AI must not guess a delivery date, name a carrier that is not on the order, or invent a freight price</legend>
+            ${radios("promises", s.promises, [["yes", "Yes. That is a company rule.", true], ["no", "No. See the note."]])}
+          </fieldset>
+          <label class="field">Anything else that applies to every store
+            <textarea name="note">${esc(s.note)}</textarea></label>
+          <div class="actions"><button class="primary" type="submit">Send the account answers</button></div>
+        </form>`);
+      const accountForm = document.getElementById("f");
+      const saveAccountDraft = () => localStorage.setItem("em-rp-account-v1", JSON.stringify(readAccount(accountForm)));
+      accountForm.addEventListener("change", saveAccountDraft);
+      accountForm.onsubmit = (e) => submitAccount(e);
+    }
+
+    function readAccount(form) {
+      const s = accountState();
+      ["name", "role", "email", "approver", "weeklyName", "weeklyEmail", "shopifyNote", "hoursNote", "holidays", "note"].forEach((k) => { s[k] = val(form, k); });
+      s.reopenNote = val(form, "reopenNote");
+      ["vendor", "reopen", "rate", "actions", "postShip", "quotes", "shopify", "hours", "tone", "promises"].forEach((k) => { s[k] = picked(form, k); });
+      const never = { contact: false, event: false, legal: false, chargeback: false };
+      [...form.querySelectorAll('input[name="never"]:checked')].forEach((el) => { never[el.value] = true; });
+      s.never = never;
+      s.sent = false;
+      return s;
+    }
+
+    function validateAccount(s) {
+      if (!s.name || !s.role || !emailOk(s.email)) return "Add your name, role, and a real email.";
+      if (!s.vendor || !s.reopen || !s.rate || !s.actions || !s.postShip || !s.quotes || !s.shopify || !s.hours || !s.tone || !s.promises) return "Please answer every required question.";
+      if (s.reopen === "other" && !s.reopenNote) return "Write the reopen window you want.";
+      if ((s.hours === "no" || s.tone === "no" || s.promises === "no" || s.rate === "no" || s.postShip === "no") && !s.note && !s.hoursNote) return "Add a note for every answer that is not the suggested one.";
+      if (!emailOk(s.approver) || !s.weeklyName || !emailOk(s.weeklyEmail)) return "Add the approver and the weekly-call contact.";
+      if (s.shopify === "some" && !s.shopifyNote) return "Name the stores whose Shopify connection is missing.";
+      return "";
+    }
+
+    function accountSummary(s) {
+      const never = Object.entries(s.never).filter(([, v]) => v).map(([k]) => k).join(", ") || "none ticked";
+      return [
+        "Extra Mile — account confirmations",
+        "From: " + s.name + " (" + s.role + ") " + s.email,
+        "Vendor and notice mail counts: " + s.vendor,
+        "Reopen window: " + s.reopen + (s.reopenNote ? " — " + s.reopenNote : ""),
+        "Calculate from raw Richpanel rows: " + s.rate,
+        "Pre-shipping actions without approval: " + s.actions,
+        "Post-shipping stays with a person: " + s.postShip,
+        "Never auto-close: " + never,
+        "Quotes: " + s.quotes,
+        "Pause contact: " + s.approver,
+        "Weekly call: " + s.weeklyName + " " + s.weeklyEmail,
+        "Shopify: " + s.shopify + (s.shopifyNote ? " — " + s.shopifyNote : ""),
+        "Hours confirmed: " + s.hours + (s.hoursNote ? " — " + s.hoursNote : ""),
+        "Closures: " + (s.holidays || "—"),
+        "Default tone: " + s.tone,
+        "No guessed dates or carriers: " + s.promises,
+        "Note: " + (s.note || "—")
+      ].join("\n");
+    }
+
+    async function submitAccount(e) {
+      e.preventDefault();
+      const s = readAccount(e.target);
+      const error = validateAccount(s);
+      if (error) { document.getElementById("err").innerHTML = `<div class="error" role="alert">${esc(error)}</div>`; return; }
+      localStorage.setItem("em-rp-account-v1", JSON.stringify(s));
+      await send("Extra Mile Richpanel — account answers — " + s.name, s.email, accountSummary(s), s, "em-rp-account-v1");
+    }
+
+    function renderBrand(id) {
+      const known = BRANDS.find((b) => b.id === id);
+      const b = known || { id: "other", name: "A brand that is not listed", email: "", site: "", known: "" };
+      document.getElementById("title").textContent = b.name;
+      const s = id === "other" ? brandState("other") : brandState(b.id);
+      const actionRows = ACTIONS.map(([aid, label]) => `
+        <fieldset>
+          <legend class="req">${label}</legend>
+          ${radios("act-" + aid, s.actions[aid] || "yes", [["yes", "AI may do it", true], ["approve", "A person approves it"], ["no", "Do not offer this"]])}
+        </fieldset>`).join("");
+      shell("All sections", `
+        <h2>${esc(b.name)}</h2>
+        <p class="step-help">Send this brand on its own. ${b.known ? esc(b.known) : "Tell us whether this brand is in the project, and anything that differs from the company rules."}</p>
+        <form id="f">
+          <div id="err"></div>
+          ${b.id === "other" ? `<label class="field"><span class="req">Brand name</span><input name="brandName" value="${esc(s.brandName || "")}"></label>` : `<input type="hidden" name="brandName" value="${esc(b.name)}">`}
+          <div class="grid-2">
+            <label class="field"><span class="req">Your name</span><input name="name" value="${esc(s.name)}"></label>
+            <label class="field"><span class="req">Your role</span><input name="role" value="${esc(s.role)}"></label>
+          </div>
+          <label class="field"><span class="req">Your email</span><input name="email" type="email" value="${esc(s.email)}"></label>
+          <fieldset>
+            <legend class="req">Is this brand in the project?</legend>
+            ${radios("scope", s.scope, [
+              ["customer", "Yes. Customers write in.", true],
+              ["vendor", "Vendor and spam mail only. Real orders are rare."],
+              ["out", "Leave this brand out."]
+            ])}
+          </fieldset>
+          <div id="details">
+            <div class="grid-2">
+              <label class="field"><span class="req">Support email customers reply to</span><input name="supportEmail" type="email" value="${esc(s.supportEmail)}"></label>
+              <label class="field">Website<input name="site" type="url" value="${esc(s.site)}" placeholder="https://"></label>
+            </div>
+            <fieldset>
+              <legend class="req">Shipping, returns, and warranty</legend>
+              ${radios("policy", s.policy, [
+                ["site", "Follow the live website", true],
+                ["differs", "The website is missing something, or we do it differently"]
+              ])}
+            </fieldset>
+            <label class="field">Policy links, and what is different in practice
+              <textarea name="policyNote" placeholder="Links, return window, restocking fee, what cannot be returned">${esc(s.policyNote)}</textarea></label>
+            <label class="field">Carriers this brand actually uses
+              <input name="carriers" value="${esc(s.carriers)}" placeholder="Only name a carrier when it is on the order. List the usual ones here."></label>
+            <fieldset>
+              <legend class="req">Hours</legend>
+              ${radios("hours", s.hours, [["same", "Same as the company: Mon–Fri, 9am–5pm Central", true], ["diff", "Different"]])}
+            </fieldset>
+            <label class="field">Different hours<input name="hoursNote" value="${esc(s.hoursNote)}"></label>
+            <fieldset>
+              <legend class="req">How a reply is signed</legend>
+              ${radios("signoff", s.signoff, [["store", b.name + " Support", true], ["other", "A different sign-off"]])}
+            </fieldset>
+            <label class="field">Sign-off, if it is different<input name="signoffNote" value="${esc(s.signoffNote)}"></label>
+            <fieldset>
+              <legend class="req">Tone</legend>
+              ${radios("tone", s.tone, [["same", "Short and plain, like the company default", true], ["diff", "This brand sounds different"]])}
+            </fieldset>
+            <label class="field">What to change in the tone<textarea name="toneNote">${esc(s.toneNote)}</textarea></label>
+            <label class="field">One reply your team is happy with, with the customer’s name and order number removed
+              <textarea name="sample">${esc(s.sample)}</textarea></label>
+            <h3>Before the order ships</h3>
+            ${actionRows}
+            <fieldset>
+              <legend class="req">After shipment, freight, damage, missing parts, and supplier claims stay with a person</legend>
+              ${radios("afterShip", s.afterShip, [["yes", "Yes", true], ["no", "No"]])}
+            </fieldset>
+            <label class="field">Quotes, custom orders, schools, or other mail that must stay with a person
+              <textarea name="exceptions">${esc(s.exceptions)}</textarea></label>
+            <label class="field">Anything this brand does differently from the company rules
+              <textarea name="differs">${esc(s.differs)}</textarea></label>
+          </div>
+          <div class="actions"><button class="primary" type="submit">Send ${esc(b.name)}</button></div>
+        </form>`);
+      const details = document.getElementById("details");
+      const sync = () => { details.style.display = picked(document.getElementById("f"), "scope") === "out" ? "none" : ""; };
+      const brandForm = document.getElementById("f");
+      const saveBrandDraft = () => {
+        const draft = readBrand(brandForm, b);
+        localStorage.setItem("em-rp-brand-" + b.id, JSON.stringify(draft));
+      };
+      brandForm.addEventListener("change", () => { sync(); saveBrandDraft(); });
+      sync();
+      brandForm.onsubmit = (e) => submitBrand(e, b);
+    }
+
+    function readBrand(form, b) {
+      const s = b.id === "other" ? brandState("other") : brandState(b.id);
+      ["name", "role", "email", "brandName", "supportEmail", "site", "policyNote", "carriers", "hoursNote", "signoffNote", "toneNote", "sample", "exceptions", "differs"].forEach((k) => { s[k] = val(form, k); });
+      ["scope", "policy", "hours", "signoff", "tone", "afterShip"].forEach((k) => { s[k] = picked(form, k); });
+      ACTIONS.forEach(([id]) => { s.actions[id] = picked(form, "act-" + id); });
+      s.sent = false;
+      return s;
+    }
+
+    function validateBrand(s, b) {
+      if (!s.name || !s.role || !emailOk(s.email)) return "Add your name, role, and a real email.";
+      if (b.id === "other" && !s.brandName) return "Add the brand name.";
+      if (!s.scope) return "Say whether this brand is in the project.";
+      if (s.scope === "out") return "";
+      if (!emailOk(s.supportEmail)) return "Add the support email customers reply to.";
+      if (!s.policy || !s.hours || !s.signoff || !s.tone || !s.afterShip) return "Please answer every required question.";
+      if (s.policy === "differs" && !s.policyNote) return "Say what is different from the website, or paste the policy link.";
+      if (s.hours === "diff" && !s.hoursNote) return "Write this brand’s hours.";
+      if (s.signoff === "other" && !s.signoffNote) return "Write the sign-off.";
+      if (s.tone === "diff" && !s.toneNote) return "Say how this brand should sound.";
+      if (ACTIONS.some(([id]) => !s.actions[id])) return "Choose an option for each pre-shipping action.";
+      if (s.afterShip === "no" && !s.differs) return "Say which post-shipping cases the AI should handle.";
+      return "";
+    }
+
+    function brandSummary(s, b) {
+      const brand = s.brandName || b.name;
+      const lines = [
+        "Extra Mile — " + brand,
+        "From: " + s.name + " (" + s.role + ") " + s.email,
+        "Scope: " + s.scope
+      ];
+      if (s.scope === "out") return lines.join("\n");
+      lines.push(
+        "Support email: " + s.supportEmail,
+        "Website: " + (s.site || "—"),
+        "Policy: " + s.policy + (s.policyNote ? " — " + s.policyNote : ""),
+        "Carriers: " + (s.carriers || "—"),
+        "Hours: " + s.hours + (s.hoursNote ? " — " + s.hoursNote : ""),
+        "Sign-off: " + s.signoff + (s.signoffNote ? " — " + s.signoffNote : ""),
+        "Tone: " + s.tone + (s.toneNote ? " — " + s.toneNote : ""),
+        "Sample reply: " + (s.sample || "—"),
+        "Actions: " + ACTIONS.map(([id, label]) => label + " = " + s.actions[id]).join("; "),
+        "After shipment stays with a person: " + s.afterShip,
+        "Keep with a person: " + (s.exceptions || "—"),
+        "Differences: " + (s.differs || "—")
+      );
+      return lines.join("\n");
+    }
+
+    async function submitBrand(e, b) {
+      e.preventDefault();
+      const s = readBrand(e.target, b);
+      const error = validateBrand(s, b);
+      if (error) { document.getElementById("err").innerHTML = `<div class="error" role="alert">${esc(error)}</div>`; return; }
+      const key = "em-rp-brand-" + b.id;
+      localStorage.setItem(key, JSON.stringify(s));
+      const brand = s.brandName || b.name;
+      await send("Extra Mile Richpanel — " + brand + " — " + s.name, s.email, brandSummary(s, b), s, key);
+    }
+
+    async function send(subject, replyTo, summary, state, key) {
+      const btn = document.querySelector("#f button[type=submit]");
+      btn.disabled = true;
+      btn.textContent = "Sending…";
+      const body = new FormData();
+      body.append("_subject", subject);
+      body.append("_template", "table");
+      body.append("_captcha", "false");
+      body.append("_replyto", replyTo);
+      body.append("email", replyTo);
+      body.append("summary", summary);
+      body.append("answers_json", JSON.stringify(state));
+      try {
+        const res = await fetch(ENDPOINT, { method: "POST", headers: { Accept: "application/json" }, body });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || String(data.success) === "false") throw new Error(data.message || "The form service did not accept the answers.");
+        state.sent = true;
+        localStorage.setItem(key, JSON.stringify(state));
+        thanks(summary, true);
+      } catch (err) {
+        thanks(summary, false, err.message);
+      }
+    }
+
+    function thanks(summary, ok, message) {
+      document.getElementById("app").innerHTML = `
+        <a class="back" href="#home">All sections</a>
+        <h2>${ok ? "Sent. Thank you." : "Not sent yet"}</h2>
+        <p class="step-help">${ok
+          ? "Aidana has this part. The other brands can still be sent separately."
+          : "We could not send just now (" + esc(message) + "). Copy the summary and email it to aidana@artikunocommerce.com."}</p>
+        <div class="summary" id="summary">${esc(summary)}</div>
+        <div class="actions"><button type="button" class="ghost" id="copy">Copy summary</button></div>`;
+      document.getElementById("copy").onclick = () => navigator.clipboard.writeText(summary);
+    }
+
+    function route() {
+      const hash = location.hash.replace(/^#/, "") || "home";
+      if (hash === "home") renderHome();
+      else if (hash === "account") renderAccount();
+      else if (hash.startsWith("brand/")) renderBrand(hash.slice(6));
+      else renderHome();
+      window.scrollTo(0, 0);
+    }
+    window.addEventListener("hashchange", route);
+    route();
+  </script>
+</body>
+</html>
